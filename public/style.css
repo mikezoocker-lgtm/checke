@@ -3,30 +3,10 @@ body {
   margin: 20px;
 }
 
-h1 { margin: 0; }
-
 .header {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-.topRow {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-}
-
-.card {
-  border: 1px solid #ddd;
-  border-radius: 14px;
-  padding: 12px;
-}
-
-.cardTitle {
-  font-weight: 800;
+  gap: 10px;
 }
 
 .row {
@@ -36,32 +16,14 @@ h1 { margin: 0; }
   flex-wrap: wrap;
 }
 
-.roleBox {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: flex-end;
-}
-
-.badge {
-  display: inline-block;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid #ccc;
-  font-weight: 800;
-  width: fit-content;
-}
-
-.hint {
-  color: #666;
-  font-size: 13px;
-}
-
-button {
+select, button {
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid #ddd;
   background: #fff;
+}
+
+button {
   cursor: pointer;
 }
 
@@ -81,16 +43,13 @@ button:disabled {
   cursor: not-allowed;
 }
 
-input[type="text"] {
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  min-width: 220px;
+.hint {
+  color: #666;
+  font-size: 13px;
 }
 
-/* Board */
 .board {
-  margin-top: 14px;
+  margin-top: 16px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
@@ -108,7 +67,6 @@ input[type="text"] {
   padding: 20px;
   font-size: 18px;
   font-weight: 800;
-  cursor: pointer;
   border-radius: 12px;
   border: 1px solid #ccc;
   background: #fff;
@@ -116,46 +74,43 @@ input[type="text"] {
 
 .cell.used {
   opacity: 0.45;
-  cursor: not-allowed;
   text-decoration: line-through;
 }
 
-/* Players */
 .playersList {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin: 10px 0;
+  gap: 6px;
 }
 
-.playerRow {
+.playerLine {
   display: flex;
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
 }
 
-.activeDot {
+.playerLine .dot {
   width: 10px;
   height: 10px;
   border-radius: 999px;
   border: 1px solid #ccc;
 }
 
-.activeDot.on {
+.playerLine .dot.on {
   background: #111;
 }
 
-.playerName {
-  min-width: 200px;
+.playerLine .name {
+  min-width: 180px;
+  font-weight: 700;
 }
 
-.playerScore {
+.playerLine .score {
   font-weight: 900;
-  min-width: 70px;
+  min-width: 60px;
 }
 
-/* Dialog */
 dialog {
   border-radius: 14px;
   padding: 18px;
@@ -165,7 +120,7 @@ dialog {
 }
 
 dialog::backdrop {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0,0,0,0.4);
 }
 
 .actions {

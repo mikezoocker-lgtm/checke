@@ -1,4 +1,3 @@
-// server.js
 const express = require("express");
 const WebSocket = require("ws");
 const path = require("path");
@@ -6,68 +5,57 @@ const fs = require("fs");
 const crypto = require("crypto");
 
 // ─────────────────────────────────────────────────────────────
-// 1) Fragen laden
+// Fragen laden
 const QUESTIONS_PATH = path.join(__dirname, "questions.json");
 const questions = JSON.parse(fs.readFileSync(QUESTIONS_PATH, "utf-8"));
 
-// Mini-Validierung (hilft bei JSON-Tippfehlern)
 if (!Array.isArray(questions.categories) || !Array.isArray(questions.values) || !Array.isArray(questions.clues)) {
-  throw new Error("questions.json Formatfehler: categories/values/clues fehlen oder sind nicht Arrays.");
+  throw new Error("questions.json Formatfehler: categories/values/clues müssen Arrays sein.");
 }
 if (questions.clues.length !== questions.values.length) {
   throw new Error("questions.json Formatfehler: clues-Zeilen müssen gleich viele sein wie values.");
 }
 
 // ─────────────────────────────────────────────────────────────
-// 2) Express: public/ ausliefern
+// Express
 const app = express();
 app.use(express.static(path.join(__dirname, "public")));
 
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () => {
-  console.log(`HTTP Server läuft auf http://localhost:${PORT}`);
-});
+const server = app.listen(PORT, () => console.log(`Server läuft auf http://localhost:${PORT}`));
 
-// ─────────────────────────────────────────────────────────────
-// 3) WebSocket-Server
 const wss = new WebSocket.Server({ server });
 
 // ─────────────────────────────────────────────────────────────
-// 4) Host-Key (Render: Environment Variable HOST_KEY setzen!)
+// HOST_KEY (auf Render als Environment Variable setzen!)
 const HOST_KEY = process.env.HOST_KEY || crypto.randomBytes(12).toString("hex");
-console.log("HOST_KEY (nur Host benutzen):", HOST_KEY);
+console.log("HOST_KEY:", HOST_KEY);
 
 // ─────────────────────────────────────────────────────────────
-// 5) Spielzustand (Players statt Teams)
+// Spielzustand
 let game = {
   categories: questions.categories,
 
-  // Spieler-Liste (Teams sind jetzt Spieler)
+  // Spieler (Teams = Spieler)
   players: [
     { id: "p1", name: "Spieler 1", score: 0 },
     { id: "p2", name: "Spieler 2", score: 0 }
   ],
   activePlayerId: "p1",
 
-  // Board aus values/categories generieren
-  board: questions.values.map((value) =>
-    questions.categories.map(() => ({ value, used: false }))
-  ),
+  board: questions.values.map((v) => questions.categories.map(() => ({ value: v, used: false }))),
 
-  // aktuelle offene Frage: { r, c } oder null
-  current: null
+  current: null, // { r, c } oder null
+
+  // Ablauf/Phasen
+  phase: "idle",            // "idle" | "clue" | "buzz"
+  chooserPlayerId: null,    // wer hat gewählt (antwortet zuerst)
+  lockedBuzzPlayerId: null, // wer hat gebuzzert und ist dran
+  buzzedPlayerIds: []       // wer schon falsch war in dieser Buzz-Runde
 };
 
-// ─────────────────────────────────────────────────────────────
-// 6) Helpers: Fragen aus questions.json
 function getClue(r, c) {
   return questions.clues[r]?.[c] || null;
-}
-
-// ─────────────────────────────────────────────────────────────
-// 7) Helpers: Players
-function getActiveIndex() {
-  return game.players.findIndex((p) => p.id === game.activePlayerId);
 }
 
 function ensureActivePlayer() {
@@ -75,7 +63,7 @@ function ensureActivePlayer() {
     game.activePlayerId = null;
     return;
   }
-  if (getActiveIndex() === -1) {
+  if (!game.players.some(p => p.id === game.activePlayerId)) {
     game.activePlayerId = game.players[0].id;
   }
 }
@@ -85,47 +73,30 @@ function nextPlayer() {
     game.activePlayerId = null;
     return;
   }
-  const idx = getActiveIndex();
+  const idx = game.players.findIndex(p => p.id === game.activePlayerId);
   const nextIdx = idx === -1 ? 0 : (idx + 1) % game.players.length;
   game.activePlayerId = game.players[nextIdx].id;
 }
 
-function addPlayer(name) {
-  const safeName = typeof name === "string" && name.trim() ? name.trim() : `Spieler ${game.players.length + 1}`;
-  const id = `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
-  game.players.push({ id, name: safeName, score: 0 });
-  ensureActivePlayer();
-}
-
-function removePlayer(id) {
-  if (typeof id !== "string") return;
-  game.players = game.players.filter((p) => p.id !== id);
-  ensureActivePlayer();
-}
-
-function renamePlayer(id, name) {
-  if (typeof id !== "string") return;
-  if (typeof name !== "string" || !name.trim()) return;
-  const p = game.players.find((p) => p.id === id);
-  if (p) p.name = name.trim();
-}
-
-// ─────────────────────────────────────────────────────────────
-// 8) Public State (ohne Antworten)
-function publicState() {
-  let currentClue = null;
+function publicStateFor(ws) {
+  let current = null;
 
   if (game.current) {
     const { r, c } = game.current;
     const clue = getClue(r, c);
 
-    currentClue = {
+    current = {
       r,
       c,
       category: game.categories[c],
       value: game.board[r]?.[c]?.value ?? 0,
       q: clue?.q ?? "❌ Frage fehlt"
     };
+
+    // Nur Host sieht Antworten
+    if (ws?.isHost) {
+      current.answers = clue?.a ?? [];
+    }
   }
 
   return {
@@ -133,33 +104,32 @@ function publicState() {
     board: game.board,
     players: game.players,
     activePlayerId: game.activePlayerId,
-    current: currentClue
+
+    phase: game.phase,
+    chooserPlayerId: game.chooserPlayerId,
+    lockedBuzzPlayerId: game.lockedBuzzPlayerId,
+    buzzedPlayerIds: game.buzzedPlayerIds,
+
+    current
   };
 }
 
-function sendState(ws) {
-  ws.send(JSON.stringify({ type: "state", game: publicState() }));
-}
-
 function broadcast() {
-  const msg = JSON.stringify({ type: "state", game: publicState() });
   for (const c of wss.clients) {
-    if (c.readyState === WebSocket.OPEN) c.send(msg);
+    if (c.readyState === WebSocket.OPEN) {
+      c.send(JSON.stringify({ type: "state", game: publicStateFor(c) }));
+    }
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// 9) Host-Rechte
-function requireHost(ws) {
-  return ws.isHost === true;
+function sendState(ws) {
+  ws.send(JSON.stringify({ type: "state", game: publicStateFor(ws) }));
 }
 
-// ─────────────────────────────────────────────────────────────
-// 10) WebSocket Handling
 wss.on("connection", (ws) => {
   ws.isHost = false;
 
-  // Initial State
+  // initial
   sendState(ws);
   ws.send(JSON.stringify({ type: "info", isHost: ws.isHost }));
 
@@ -171,111 +141,160 @@ wss.on("connection", (ws) => {
       return;
     }
 
-    // ── AUTH: Client kann Host-Key senden
-    // { type: "auth", key: "..." }
+    // ── Auth (Host)
     if (msg.type === "auth") {
-      if (typeof msg.key === "string" && msg.key === HOST_KEY) {
-        ws.isHost = true;
-        ws.send(JSON.stringify({ type: "info", isHost: true }));
-      } else {
-        ws.isHost = false;
-        ws.send(JSON.stringify({ type: "info", isHost: false, error: "Falscher Host-Key" }));
-      }
+      ws.isHost = typeof msg.key === "string" && msg.key === HOST_KEY;
+      ws.send(JSON.stringify({ type: "info", isHost: ws.isHost, error: ws.isHost ? undefined : "Falscher Host-Key" }));
+      // direkt danach aktuellen State nochmal senden (damit Host sofort answers sieht)
+      sendState(ws);
       return;
     }
 
-    // Alles ab hier: nur Host darf steuern
-    if (!requireHost(ws)) return;
+    // ─────────────────────────────────────────────
+    // BUZZ: darf auch von Nicht-Host kommen
+    if (msg.type === "buzz") {
+      if (game.phase !== "buzz") return;
 
-    // ── Spieler verwalten
-    if (msg.type === "player_add") {
-      addPlayer(msg.name);
+      const playerId = msg.playerId;
+      if (typeof playerId !== "string") return;
+
+      // jemand ist schon gelockt
+      if (game.lockedBuzzPlayerId) return;
+
+      // Spieler darf nicht nochmal, wenn schon falsch
+      if (game.buzzedPlayerIds.includes(playerId)) return;
+
+      // optional: nur existierende Spieler
+      if (!game.players.some(p => p.id === playerId)) return;
+
+      game.lockedBuzzPlayerId = playerId;
       broadcast();
       return;
     }
 
-    if (msg.type === "player_remove") {
-      removePlayer(msg.id);
-      broadcast();
-      return;
-    }
+    // ─────────────────────────────────────────────
+    // Ab hier: Host-only
+    if (!ws.isHost) return;
 
-    if (msg.type === "player_rename") {
-      renamePlayer(msg.id, msg.name);
-      broadcast();
-      return;
-    }
-
-    if (msg.type === "player_set_active") {
-      if (game.players.some((p) => p.id === msg.id)) {
-        game.activePlayerId = msg.id;
-      }
-      broadcast();
-      return;
-    }
-
-    // ── Frage öffnen
+    // Frage öffnen
     if (msg.type === "open") {
       const { r, c } = msg;
       if (!Number.isInteger(r) || !Number.isInteger(c)) return;
       if (!game.board[r]?.[c]) return;
       if (game.board[r][c].used) return;
 
+      ensureActivePlayer();
+
       game.current = { r, c };
+      game.phase = "clue";
+      game.chooserPlayerId = game.activePlayerId;
+
+      game.lockedBuzzPlayerId = null;
+      game.buzzedPlayerIds = [];
+
       broadcast();
       return;
     }
 
-    // ── Antwort werten (Score + Auto-Spielerwechsel)
-    if (msg.type === "answer") {
+    // Host bewertet (richtig/falsch)
+    if (msg.type === "judge") {
       if (!game.current) return;
 
-      ensureActivePlayer();
-      if (!game.activePlayerId) return;
+      const cell = game.board[game.current.r]?.[game.current.c];
+      if (!cell || cell.used) return;
 
-      const { r, c } = game.current;
-      const cell = game.board[r]?.[c];
-      if (!cell) return;
+      // wer antwortet gerade?
+      const answeringId =
+        game.phase === "buzz" && game.lockedBuzzPlayerId
+          ? game.lockedBuzzPlayerId
+          : game.chooserPlayerId;
 
-      // Nicht doppelt werten
-      if (cell.used) {
+      if (!answeringId) return;
+
+      const player = game.players.find(p => p.id === answeringId);
+      if (!player) return;
+
+      const value = cell.value;
+
+      if (msg.result === "correct") {
+        player.score += value;
+        cell.used = true;
+
+        // Gewinner darf als nächstes wählen (klassisch)
+        game.activePlayerId = player.id;
+
+        // Runde beenden
         game.current = null;
+        game.phase = "idle";
+        game.chooserPlayerId = null;
+        game.lockedBuzzPlayerId = null;
+        game.buzzedPlayerIds = [];
+
         broadcast();
         return;
       }
 
-      cell.used = true;
+      if (msg.result === "wrong") {
+        player.score -= value;
 
-      const value = cell.value;
-      const active = game.players.find((p) => p.id === game.activePlayerId);
+        if (game.phase === "clue") {
+          // Buzz-Phase starten, chooser ist raus
+          game.phase = "buzz";
+          game.buzzedPlayerIds = [answeringId];
+          game.lockedBuzzPlayerId = null;
+          broadcast();
+          return;
+        }
 
-      if (active) {
-        if (msg.correct === true) active.score += value;
-        else if (msg.correct === false) active.score -= value;
+        if (game.phase === "buzz") {
+          // buzzer ist raus, buzz wieder frei
+          if (!game.buzzedPlayerIds.includes(answeringId)) {
+            game.buzzedPlayerIds.push(answeringId);
+          }
+          game.lockedBuzzPlayerId = null;
+          broadcast();
+          return;
+        }
       }
 
-      // Schließen + weiter zum nächsten Spieler
+      return;
+    }
+
+    // Weiter ohne Antwort (wenn niemand buzzert)
+    if (msg.type === "end_clue_no_buzz") {
+      if (!game.current) return;
+
+      const cell = game.board[game.current.r]?.[game.current.c];
+      if (cell) cell.used = true;
+
+      // Runde beenden
       game.current = null;
+      game.phase = "idle";
+      game.chooserPlayerId = null;
+      game.lockedBuzzPlayerId = null;
+      game.buzzedPlayerIds = [];
+
+      // optional: nächste Person ist dran
       nextPlayer();
 
       broadcast();
       return;
     }
 
-    // ── Reset (optional)
+    // Optionaler Reset
     if (msg.type === "reset") {
-      game.players.forEach((p) => (p.score = 0));
-      game.board = questions.values.map((value) =>
-        questions.categories.map(() => ({ value, used: false }))
-      );
+      game.players.forEach(p => p.score = 0);
+      game.board = questions.values.map((v) => questions.categories.map(() => ({ value: v, used: false })));
       game.current = null;
+
+      game.phase = "idle";
+      game.chooserPlayerId = null;
+      game.lockedBuzzPlayerId = null;
+      game.buzzedPlayerIds = [];
+
       ensureActivePlayer();
       broadcast();
       return;
     }
-  });
-
-  ws.on("close", () => {
-    // optional: logging
   });
 });

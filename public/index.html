@@ -9,31 +9,17 @@
 <body>
 
 <header class="header">
-  <div class="topRow">
-    <h1>Jeopardy Online</h1>
+  <h1>Jeopardy Online</h1>
 
-    <div class="roleBox">
-      <div id="roleBadge" class="badge">ZUSCHAUER</div>
-      <div id="roleHint" class="hint">Nur der Host kann Felder öffnen, Punkte vergeben und Spieler verwalten.</div>
-    </div>
+  <div class="row">
+    <label><b>Ich bin:</b></label>
+    <select id="playerSelect"></select>
+    <button id="buzzBtn" class="primary">BUZZ!</button>
   </div>
 
-  <section class="card playersCard">
-    <div class="row">
-      <div class="cardTitle">Spieler</div>
-      <div id="activePlayerLabel" class="badge">Aktiv: –</div>
-    </div>
+  <div id="buzzStatus" class="hint"></div>
 
-    <div id="playersList" class="playersList"></div>
-
-    <div class="row">
-      <input id="newPlayerName" type="text" placeholder="Neuer Spielername…" />
-      <button id="addPlayerBtn">Hinzufügen</button>
-      <button id="resetBtn" class="danger">Reset</button>
-    </div>
-
-    <div class="hint">Tip: Name ändern → Enter/Focus-Wechsel. „Aktiv“ setzt den Startspieler.</div>
-  </section>
+  <div id="playersList" class="playersList"></div>
 </header>
 
 <main>
@@ -44,9 +30,12 @@
   <h2 id="questionTitle"></h2>
   <p id="questionText"></p>
 
+  <div id="hostAnswerBox" class="hint"></div>
+
   <div class="actions">
     <button id="wrongBtn" class="danger">Falsch</button>
     <button id="correctBtn" class="primary">Richtig</button>
+    <button id="endNoBuzzBtn">Weiter ohne Antwort</button>
   </div>
 </dialog>
 
