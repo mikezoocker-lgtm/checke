@@ -2,6 +2,7 @@ const express = require("express");
 const WebSocket = require("ws");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 
 // ─────────────────────────────────────────────────────────────
 // Fragen laden
@@ -21,6 +22,13 @@ const server = app.listen(PORT, () => {
 const wss = new WebSocket.Server({ server });
 
 // ─────────────────────────────────────────────────────────────
+// HOST KEY
+// Option A (empfohlen): Setze HOST_KEY als Environment Variable (Render -> Environment -> HOST_KEY)
+// Option B: Falls nicht gesetzt, wird einmalig ein Key generiert und im Log ausgegeben.
+const HOST_KEY = process.env.HOST_KEY || crypto.randomBytes(12).toString("hex");
+console.log("HOST_KEY (nur Host benutzen):", HOST_KEY);
+
+// ─────────────────────────────────────────────────────────────
 // Spielzustand
 let game = {
   categories: questions.categories,
@@ -28,21 +36,17 @@ let game = {
   scores: { A: 0, B: 0 },
 
   board: questions.values.map((value) =>
-    questions.categories.map(() => ({
-      value,
-      used: false
-    }))
+    questions.categories.map(() => ({ value, used: false }))
   ),
 
   current: null // { r, c }
 };
 
-// Antworten bleiben serverseitig
 function getClue(r, c) {
   return questions.clues[r]?.[c];
 }
 
-// Nur sichere Daten an Clients senden
+// Nur sichere Daten an Clients senden (keine Antworten)
 function publicState() {
   let currentClue = null;
 
@@ -70,36 +74,79 @@ function publicState() {
 
 function broadcast() {
   const msg = JSON.stringify({ type: "state", game: publicState() });
-  wss.clients.forEach(c => {
+  wss.clients.forEach((c) => {
     if (c.readyState === WebSocket.OPEN) c.send(msg);
   });
+}
+
+// Hilfsfunktion: nur Host darf steuern
+function requireHost(ws) {
+  return ws.isHost === true;
 }
 
 // ─────────────────────────────────────────────────────────────
 // WebSocket
 wss.on("connection", (ws) => {
+  ws.isHost = false;
+
+  // State an neuen Client
   ws.send(JSON.stringify({ type: "state", game: publicState() }));
 
+  // Optional: Client-Info
+  ws.send(JSON.stringify({ type: "info", isHost: ws.isHost }));
+
   ws.on("message", (raw) => {
-    const msg = JSON.parse(raw.toString());
+    let msg;
+    try {
+      msg = JSON.parse(raw.toString());
+    } catch {
+      return;
+    }
+
+    // 1) AUTH: Client kann sich als Host ausweisen
+    // Client sendet: { type:"auth", key:"..." }
+    if (msg.type === "auth") {
+      if (typeof msg.key === "string" && msg.key === HOST_KEY) {
+        ws.isHost = true;
+        ws.send(JSON.stringify({ type: "info", isHost: true }));
+      } else {
+        ws.isHost = false;
+        ws.send(JSON.stringify({ type: "info", isHost: false, error: "Falscher Host-Key" }));
+      }
+      return;
+    }
+
+    // Ab hier: nur Host darf steuern
+    if (!requireHost(ws)) {
+      // Nicht-Host darf nichts steuern → ignorieren
+      return;
+    }
 
     if (msg.type === "team") {
-      game.activeTeam = msg.team;
-      broadcast();
+      if (msg.team === "A" || msg.team === "B") {
+        game.activeTeam = msg.team;
+        broadcast();
+      }
+      return;
     }
 
     if (msg.type === "open") {
       const { r, c } = msg;
+      if (!Number.isInteger(r) || !Number.isInteger(c)) return;
       if (!game.board[r]?.[c] || game.board[r][c].used) return;
+
       game.current = { r, c };
       broadcast();
+      return;
     }
 
     if (msg.type === "answer") {
       if (!game.current) return;
 
       const { r, c } = game.current;
-      const cell = game.board[r][c];
+      const cell = game.board[r]?.[c];
+      if (!cell) return;
+
       cell.used = true;
 
       const value = cell.value;
@@ -107,6 +154,19 @@ wss.on("connection", (ws) => {
 
       game.current = null;
       broadcast();
+      return;
+    }
+
+    // Optional: reset-Button später
+    if (msg.type === "reset") {
+      game.scores = { A: 0, B: 0 };
+      game.board = questions.values.map((value) =>
+        questions.categories.map(() => ({ value, used: false }))
+      );
+      game.current = null;
+      game.activeTeam = "A";
+      broadcast();
+      return;
     }
   });
 });
