@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Jeopardy Online</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>Jeopardy Online</h1>
+
+  <div class="scores">
+    <div>Team A: <span id="scoreA">0</span></div>
+    <div>Team B: <span id="scoreB">0</span></div>
+  </div>
+
+  <div class="teams">
+    <button id="activeA">Aktiv: Team A</button>
+    <button id="activeB">Aktiv: Team B</button>
+  </div>
+</header>
+
+<main>
+  <div id="board" class="board"></div>
+</main>
+
+<dialog id="questionDialog">
+  <h2 id="questionTitle"></h2>
+  <p id="questionText"></p>
+
+  <div class="actions">
+    <button id="wrongBtn">Falsch</button>
+    <button id="correctBtn">Richtig</button>
+  </div>
+</dialog>
+
+<script src="game.js"></script>
+</body>
+</html>

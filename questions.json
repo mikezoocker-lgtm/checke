@@ -1,0 +1,21 @@
+{
+  "categories": ["Mathe", "Geografie", "Popkultur"],
+  "values": [100, 200, 300],
+  "clues": [
+    [
+      { "q": "Wie viel ist 7 × 8?", "a": ["56"] },
+      { "q": "Hauptstadt von Frankreich?", "a": ["Paris"] },
+      { "q": "Welche Filmreihe hat Darth Vader?", "a": ["Star Wars", "Krieg der Sterne"] }
+    ],
+    [
+      { "q": "Wie viel ist (12 + 5) × 2?", "a": ["34"] },
+      { "q": "Welcher Ozean liegt östlich von Afrika?", "a": ["Indischer Ozean"] },
+      { "q": "Band von 'Bohemian Rhapsody'?", "a": ["Queen"] }
+    ],
+    [
+      { "q": "Quadratwurzel von 144?", "a": ["12"] },
+      { "q": "Gebirge zwischen Spanien und Frankreich?", "a": ["Pyrenäen"] },
+      { "q": "Wer singt 'Bad Guy'?", "a": ["Billie Eilish"] }
+    ]
+  ]
+}
