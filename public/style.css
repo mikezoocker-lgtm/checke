@@ -47,3 +47,22 @@ dialog {
   border-radius: 12px;
   padding: 20px;
 }
+
+.badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #ccc;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.hint {
+  color: #666;
+  font-size: 13px;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
