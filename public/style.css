@@ -3,49 +3,44 @@ body {
   margin: 20px;
 }
 
-header {
+h1 { margin: 0; }
+
+.header {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
-.scores, .teams {
+.topRow {
   display: flex;
-  gap: 15px;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
 }
 
-.board {
-  margin-top: 20px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.card {
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.cardTitle {
+  font-weight: 800;
+}
+
+.row {
+  display: flex;
   gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-.category {
-  font-weight: bold;
-  text-align: center;
-  background: #eee;
-  padding: 10px;
-  border-radius: 10px;
-}
-
-.cell {
-  padding: 20px;
-  font-size: 18px;
-  font-weight: bold;
-  cursor: pointer;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-}
-
-.cell.used {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-dialog {
-  border-radius: 12px;
-  padding: 20px;
+.roleBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
 }
 
 .badge {
@@ -53,7 +48,7 @@ dialog {
   padding: 6px 10px;
   border-radius: 999px;
   border: 1px solid #ccc;
-  font-weight: 700;
+  font-weight: 800;
   width: fit-content;
 }
 
@@ -62,7 +57,121 @@ dialog {
   font-size: 13px;
 }
 
+button {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+}
+
+button.primary {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+
+button.danger {
+  border-color: #c33;
+  color: #c33;
+}
+
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+input[type="text"] {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  min-width: 220px;
+}
+
+/* Board */
+.board {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.category {
+  font-weight: 800;
+  text-align: center;
+  background: #f2f2f2;
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.cell {
+  padding: 20px;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+
+.cell.used {
+  opacity: 0.45;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+/* Players */
+.playersList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.playerRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.activeDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid #ccc;
+}
+
+.activeDot.on {
+  background: #111;
+}
+
+.playerName {
+  min-width: 200px;
+}
+
+.playerScore {
+  font-weight: 900;
+  min-width: 70px;
+}
+
+/* Dialog */
+dialog {
+  border-radius: 14px;
+  padding: 18px;
+  border: 1px solid #ddd;
+  max-width: 720px;
+  width: min(720px, 92vw);
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 14px;
+  flex-wrap: wrap;
 }
