@@ -1,15 +1,18 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   <title>Jeopardy Online</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
 <header class="header">
-  <h1>Jeopardy Online</h1>
+  <div class="topRow">
+    <h1>Jeopardy Online</h1>
+    <div id="roleBadge" class="badge">ZUSCHAUER</div>
+  </div>
 
   <div class="row">
     <label><b>Ich bin:</b></label>
@@ -19,18 +22,44 @@
 
   <div id="buzzStatus" class="hint"></div>
 
-  <div id="playersList" class="playersList"></div>
+  <!-- Fragepanel für ALLE (blockiert nicht) -->
+  <section id="questionPanel" class="card" style="display:none;">
+    <div class="row" style="justify-content:space-between;">
+      <b id="qpTitle"></b>
+      <span id="qpPhase" class="badge">—</span>
+    </div>
+    <p id="qpText" style="margin:8px 0 0 0;"></p>
+  </section>
+
+  <!-- Spieler-Liste (Host hat Controls) -->
+  <section class="card">
+    <div class="row" style="justify-content:space-between;">
+      <b>Spieler</b>
+      <span id="activeLabel" class="badge">Aktiv: –</span>
+    </div>
+
+    <div id="playersList" class="playersList"></div>
+
+    <div class="row">
+      <input id="newPlayerName" type="text" placeholder="Neuer Spielername…" />
+      <button id="addPlayerBtn">Hinzufügen</button>
+      <button id="resetBtn" class="danger">Reset</button>
+    </div>
+
+    <div class="hint">Nur der Host kann Spieler verwalten und Fragen öffnen/werten.</div>
+  </section>
 </header>
 
 <main>
   <div id="board" class="board"></div>
 </main>
 
+<!-- Host-Dialog (nur Host öffnet modal) -->
 <dialog id="questionDialog">
   <h2 id="questionTitle"></h2>
   <p id="questionText"></p>
 
-  <div id="hostAnswerBox" class="hint"></div>
+  <div id="hostAnswerBox" class="hint" style="margin-top:10px;"></div>
 
   <div class="actions">
     <button id="wrongBtn" class="danger">Falsch</button>

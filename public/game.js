@@ -38,7 +38,8 @@ function render() {
   if (!gameState) return;
   renderPlayers();
   renderBoard();
-  renderDialog();
+  renderQuestionPanel(); // <--- neu
+  renderDialog();        // Host-only
   renderBuzzUI();
 }
 
@@ -134,6 +135,12 @@ function renderBoard() {
 }
 
 function renderDialog() {
+  // Dialog nur für Host!
+  if (!isHost) {
+    if (dialog.open) dialog.close();
+    return;
+  }
+
   if (!gameState.current) {
     if (dialog.open) dialog.close();
     return;
@@ -142,12 +149,10 @@ function renderDialog() {
   document.getElementById("questionTitle").textContent =
     `${gameState.current.category} – ${gameState.current.value} Punkte`;
 
-  document.getElementById("questionText").textContent =
-    gameState.current.q;
+  document.getElementById("questionText").textContent = gameState.current.q;
 
-  // Host sees answers
   const hostBox = document.getElementById("hostAnswerBox");
-  if (isHost && Array.isArray(gameState.current.answers)) {
+  if (Array.isArray(gameState.current.answers)) {
     hostBox.textContent = `Lösung(en): ${gameState.current.answers.join(" / ")}`;
     hostBox.style.display = "block";
   } else {
@@ -156,6 +161,29 @@ function renderDialog() {
   }
 
   if (!dialog.open) dialog.showModal();
+}
+
+function renderQuestionPanel() {
+  const panel = document.getElementById("questionPanel");
+  const title = document.getElementById("qpTitle");
+  const text = document.getElementById("qpText");
+  const phase = document.getElementById("qpPhase");
+
+  if (!panel || !title || !text || !phase) return;
+
+  if (!gameState.current) {
+    panel.style.display = "none";
+    return;
+  }
+
+  panel.style.display = "block";
+  title.textContent = `${gameState.current.category} – ${gameState.current.value} Punkte`;
+  text.textContent = gameState.current.q;
+
+  phase.textContent =
+    gameState.phase === "clue" ? "FRAGE" :
+    gameState.phase === "buzz" ? "BUZZ!" :
+    "—";
 }
 
 function renderBuzzUI() {

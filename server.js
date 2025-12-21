@@ -78,6 +78,41 @@ function nextPlayer() {
   game.activePlayerId = game.players[nextIdx].id;
 }
 
+function addPlayer(name) {
+  const safeName = typeof name === "string" && name.trim() ? name.trim() : `Spieler ${game.players.length + 1}`;
+  const id = `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+  game.players.push({ id, name: safeName, score: 0 });
+  ensureActivePlayer();
+}
+
+function removePlayer(id) {
+  game.players = game.players.filter(p => p.id !== id);
+
+  // wenn entfernte Person aktiv/chooser/locked war -> bereinigen
+  if (game.activePlayerId === id) ensureActivePlayer();
+  if (game.chooserPlayerId === id) game.chooserPlayerId = game.activePlayerId;
+  if (game.lockedBuzzPlayerId === id) game.lockedBuzzPlayerId = null;
+  game.buzzedPlayerIds = game.buzzedPlayerIds.filter(x => x !== id);
+
+  // wenn keine Spieler mehr, Runde abbrechen
+  if (!game.players.length) {
+    game.current = null;
+    game.phase = "idle";
+    game.chooserPlayerId = null;
+    game.lockedBuzzPlayerId = null;
+    game.buzzedPlayerIds = [];
+  }
+}
+
+function renamePlayer(id, name) {
+  const p = game.players.find(p => p.id === id);
+  if (p && typeof name === "string" && name.trim()) p.name = name.trim();
+}
+
+function setActivePlayer(id) {
+  if (game.players.some(p => p.id === id)) game.activePlayerId = id;
+}
+
 function publicStateFor(ws) {
   let current = null;
 

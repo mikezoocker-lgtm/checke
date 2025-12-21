@@ -130,3 +130,18 @@ dialog::backdrop {
   margin-top: 14px;
   flex-wrap: wrap;
 }
+
+.card {
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #ccc;
+  font-weight: 800;
+  width: fit-content;
+}
